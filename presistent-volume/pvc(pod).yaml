@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+spec:
+  containers:
+    - name: app
+      image: nginx
+      ports:
+        - containerPort: 80
+      
+      # Mount PVC into container filesystem
+      volumeMounts:
+        - name: data              # Must match volumes[].name below
+          mountPath: /usr/share/nginx/html  # Path inside container
+          
+          # Optional: sub-path within PVC
+          # subPath: html         # Mount only /html subdirectory
+          
+          # Optional: read-only mount
+          # readOnly: false
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 1Gi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+  
+  # Define volumes available to this pod
+  volumes:
+    - name: data                  # Local reference name for mounts
+      persistentVolumeClaim:
+        claimName: my-pvc         # Must match PVC metadata.name
+        
+        # Optional: fail if PVC not bound yet
+        # readOnly: false
+    # - name: data
+    #   configMap: 
+    #     name: name
+    # - name: data
+    #   secret: 
+    #     secretName: name

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: iscsi-pv
+spec:
+  capacity:
+    storage: 50Gi
+  
+  accessModes:
+    - ReadWriteOnce               # iSCSI typically RWO
+  
+  persistentVolumeReclaimPolicy: Delete
+  
+  # iSCSI block storage configuration
+  iscsi:
+    targetPortal: 10.0.0.100:3260 # iSCSI server IP and port (default 3260)
+    
+    # iSCSI Qualified Name - unique identifier for target
+    iqn: iqn.2000-01.com.synology:diskstation.target-1.012345
+    
+    lun: 1                        # Logical Unit Number - disk identifier
+    
+    fsType: ext4                  # Filesystem to mount
+                                  # Common: ext4, xfs, btrfs
+    
+    readOnly: false               # Mount as read-write
+    
+    # CHAP authentication (optional security)
+    chapAuthSession: false        # One-way CHAP
+    # chapAuthDiscovery: false    # Discovery CHAP
+    # secretRef:                  # CHAP credentials secret
+    #   name: chap-secret

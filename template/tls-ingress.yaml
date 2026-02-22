@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name:  secretName
+  namespace: default
+data:
+   tls.crt: certificate # Base64
+   tls.key: key
+type: kubernetes.io/tls # Base64
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myingress
+  namepace: default
+  # labels:
+  #   app.kubernetes.io/name: myingress
+spec:
+  tls:
+  - hosts: 
+    - myapp.example.com          # Domain to apply TLS
+    secretName: myapp-tls-secret # Secret containing tls.crt and tls.key
+  rules:
+  - host: myapp.example.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: <Service>
+            port: 
+              number: 80          # Port

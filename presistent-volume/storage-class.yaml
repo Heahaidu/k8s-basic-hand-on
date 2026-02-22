@@ -1,0 +1,285 @@
+# ============================================================
+# 1. Local Storage (Minikube / single node dev)
+# ============================================================
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+
+  # Optional: set as default StorageClass for the cluster
+  # PVCs without storageClassName will use this
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+
+# Provisioner determines WHO creates the PV
+# "kubernetes.io/no-provisioner" = manual, admin creates PV by hand
+provisioner: kubernetes.io/no-provisioner
+
+# WaitForFirstConsumer: delay PV binding until a Pod using it is scheduled
+# Immediate: bind PVC to PV right away (default)
+# WaitForFirstConsumer is recommended for local/topology-aware storage
+volumeBindingMode: WaitForFirstConsumer
+
+# Reclaim policy for dynamically provisioned PVs
+# - Delete: remove PV and data when PVC is deleted
+# - Retain: keep PV and data for manual cleanup
+reclaimPolicy: Retain
+
+---
+# ============================================================
+# 2. NFS (network shared storage)
+# ============================================================
+# Requires: NFS CSI driver installed
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/install-driver.sh
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+provisioner: nfs.csi.k8s.io      # NFS CSI driver
+
+parameters:
+  server: 192.168.1.100           # NFS server IP or hostname
+  share: /exports/kubernetes      # NFS export path
+
+  # Optional: subdirectory per PVC for organization
+  # Each PVC gets its own folder: /exports/kubernetes/<pvc-name>
+  # subDir: "${pvc.metadata.namespace}/${pvc.metadata.name}"
+
+# Allow multiple nodes to mount simultaneously
+mountOptions:
+  - nfsvers=4.1                   # NFS protocol version
+  - hard                          # Retry indefinitely on failure (vs "soft")
+  - rsize=1048576                 # Read buffer size in bytes (1MB)
+  - wsize=1048576                 # Write buffer size in bytes (1MB)
+
+volumeBindingMode: Immediate      # Bind PVC right away (NFS is network-accessible)
+
+reclaimPolicy: Delete             # Auto-cleanup when PVC deleted
+
+# Allow PVC to request more storage later
+# kubectl edit pvc <name> → increase spec.resources.requests.storage
+allowVolumeExpansion: true
+
+---
+# ============================================================
+# 3. AWS EBS (Elastic Block Store)
+# ============================================================
+# Requires: AWS EBS CSI driver installed
+# https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-gp3
+provisioner: ebs.csi.aws.com      # AWS EBS CSI driver or kubernetes.io/aws-ebs
+
+parameters:
+  # Volume type:
+  # - gp3: General purpose SSD (recommended, baseline 3000 IOPS)
+  # - gp2: Older general purpose SSD (IOPS scales with size)
+  # - io1/io2: Provisioned IOPS SSD (high performance)
+  # - st1: Throughput optimized HDD (big data, logs)
+  # - sc1: Cold HDD (infrequent access, cheapest)
+  type: gp3
+
+  # Encryption at rest using AWS KMS
+  encrypted: "true"
+
+  # Optional: custom KMS key (omit to use default aws/ebs key)
+  # kmsKeyId: arn:aws:kms:us-east-1:123456789:key/abcd-1234
+
+  # gp3 specific: customize performance
+  # iops: "3000"                  # Range: 3000-16000
+  # throughput: "125"             # Range: 125-1000 MiB/s
+
+  # Filesystem type
+  csi.storage.k8s.io/fstype: ext4 # Options: ext4, xfs
+
+volumeBindingMode: WaitForFirstConsumer  # Wait for pod scheduling (AZ-aware)
+
+reclaimPolicy: Delete
+
+allowVolumeExpansion: true        # EBS supports online resizing
+
+---
+# ============================================================
+# 4. AWS EFS (Elastic File System - shared storage)
+# ============================================================
+# Requires: AWS EFS CSI driver installed
+# https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com      # AWS EFS CSI driver
+
+parameters:
+  # EFS filesystem ID (created in AWS console or Terraform)
+  fileSystemId: fs-0123456789abcdef0
+
+  # Each PVC gets its own subdirectory in EFS
+  directoryPerms: "700"           # Unix permissions for the directory
+
+  provisioningMode: efs-ap        # Use EFS Access Points
+
+  # Optional: base path for all PVCs
+  # basePath: /kubernetes
+
+mountOptions:
+  - tls                           # Encrypt data in transit
+  - iam                           # Use IAM for authentication
+
+volumeBindingMode: Immediate      # EFS is AZ-independent
+
+reclaimPolicy: Delete
+
+---
+# ============================================================
+# 5. GCE Persistent Disk (Google Cloud)
+# ============================================================
+# Requires: GCE PD CSI driver (default on GKE)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gce-pd-ssd
+provisioner: pd.csi.storage.gke.io  # GCE PD CSI driver
+
+parameters:
+  # Disk type:
+  # - pd-standard: HDD (cheapest)
+  # - pd-balanced: Balanced SSD (good default)
+  # - pd-ssd: Performance SSD (highest IOPS)
+  # - pd-extreme: Extreme performance (io-intensive workloads)
+  type: pd-ssd
+
+  # Replication type:
+  # - none: single zone (default)
+  # - regional-pd: replicate across 2 zones (high availability)
+  replication-type: none
+
+  # Filesystem
+  csi.storage.k8s.io/fstype: ext4
+
+  # Optional: disk encryption with customer-managed key
+  # disk-encryption-kms-key: projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-key
+
+volumeBindingMode: WaitForFirstConsumer  # Zone-aware scheduling
+
+reclaimPolicy: Delete
+
+allowVolumeExpansion: true
+
+---
+# ============================================================
+# 6. Azure Disk
+# ============================================================
+# Requires: Azure Disk CSI driver (default on AKS)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: azure-premium-ssd
+provisioner: disk.csi.azure.com    # Azure Disk CSI driver
+
+parameters:
+  # SKU (disk type):
+  # - Standard_LRS: Standard HDD, locally redundant
+  # - StandardSSD_LRS: Standard SSD, locally redundant
+  # - Premium_LRS: Premium SSD, locally redundant (recommended)
+  # - PremiumV2_LRS: Premium SSD v2, configurable IOPS
+  # - UltraSSD_LRS: Ultra disk, highest performance
+  skuName: Premium_LRS
+
+  # Caching mode:
+  # - None: no caching
+  # - ReadOnly: cache reads (good for most workloads)
+  # - ReadWrite: cache both (only for OS disks)
+  cachingMode: ReadOnly
+
+  # Filesystem
+  fsType: ext4
+
+  # Optional: enable disk encryption
+  # diskEncryptionSetID: /subscriptions/.../diskEncryptionSets/mySet
+
+  # Optional: availability zone
+  # location: eastus
+
+volumeBindingMode: WaitForFirstConsumer
+
+reclaimPolicy: Delete
+
+allowVolumeExpansion: true
+
+---
+# ============================================================
+# 7. Ceph RBD (distributed on-premise storage)
+# ============================================================
+# Requires: Rook-Ceph operator installed
+# https://rook.io/docs/rook/latest/Getting-Started/quickstart/
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-block
+provisioner: rook-ceph.rbd.csi.ceph.com  # Rook-Ceph CSI driver
+
+parameters:
+  # Ceph cluster configuration
+  clusterID: rook-ceph             # Namespace where Rook operator runs
+
+  # Ceph pool for block devices
+  pool: replicapool                # Must be created in CephBlockPool CRD
+
+  # Image format and features
+  imageFormat: "2"                 # Always use format 2
+  imageFeatures: layering          # Enable COW (copy-on-write) snapshots
+
+  # CSI secrets for provisioning and mounting
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+  csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
+  csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+
+  # Filesystem on RBD image
+  csi.storage.k8s.io/fstype: ext4
+
+volumeBindingMode: Immediate
+
+reclaimPolicy: Delete
+
+allowVolumeExpansion: true
+
+---
+# ============================================================
+# 8. Longhorn (lightweight distributed storage)
+# ============================================================
+# Requires: Longhorn installed
+# kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn
+provisioner: driver.longhorn.io    # Longhorn CSI driver
+
+parameters:
+  # Number of replicas across nodes
+  # More replicas = higher availability but more disk usage
+  numberOfReplicas: "3"
+
+  # Data locality:
+  # - disabled: schedule anywhere
+  # - best-effort: prefer node where pod runs
+  # - strict-local: must be on same node as pod
+  dataLocality: best-effort
+
+  # Backup store (optional, for disaster recovery)
+  # staleReplicaTimeout: "2880"   # Minutes before rebuilding stale replica
+
+  # Snapshot recurrence (optional)
+  # recurringJobSelector: '[{"name":"snap-daily","isGroup":false}]'
+
+volumeBindingMode: Immediate
+
+reclaimPolicy: Delete
+
+allowVolumeExpansion: true

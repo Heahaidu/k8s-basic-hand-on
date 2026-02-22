@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc                    # Name referenced by pods
+  namespace: default              # Namespace for this PVC
+spec:
+  # Must match PV's accessModes
+  # Rules: RWO < RWX, RWO < ROX (can request less than PV offers)
+  accessModes:
+    - ReadWriteOnce
+  
+  # Must match PV's storageClassName
+  # - Same name: bind to that class
+  # - "": no dynamic provisioning, only pre-created PVs
+  # - nil: use default StorageClass
+  storageClassName: manual
+  
+  resources:
+    requests:
+      storage: 5Gi                # Must be <= PV capacity
+                                  # Can request less than PV total
+  
+  # Optional: force binding to specific PV
+  # selector:
+  #   matchLabels:
+  #     type: nfs                 # Match PV label
+  
+  # Optional: wait for exact PV instead of dynamic provision
+  # volumeName: nfs-pv
+  
+  # Optional: use specific volume mode
+  # volumeMode: Filesystem        # or Block for raw devices

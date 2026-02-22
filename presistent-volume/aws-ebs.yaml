@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: aws-ebs-pv
+  annotations:
+    # Provisioner annotation for CSI driver
+    pv.kubernetes.io/provisioned-by: ebs.csi.aws.com
+spec:
+  capacity:
+    storage: 30Gi
+  
+  accessModes:
+    - ReadWriteOnce               # EBS only attaches to one node
+  
+  persistentVolumeReclaimPolicy: Delete
+  
+  storageClassName: gp3           # EBS volume type reference
+  
+  # Container Storage Interface configuration
+  csi:
+    driver: ebs.csi.aws.com       # AWS EBS CSI driver name
+    
+    # Unique AWS resource ID
+    volumeHandle: vol-0123456789abcdef0
+    
+    fsType: ext4                  # Linux filesystem
+    
+    # Driver-specific parameters
+    volumeAttributes:
+      type: gp3                   # Volume type: gp2, gp3, io1, io2, st1, sc1
+      
+      encrypted: "true"           # Enable encryption
+      
+      # kmsKeyId: "arn:aws:kms:..."  # Custom KMS key (optional)
+      
+      # iops: "3000"              # IOPS for gp3/io1/io2 (optional)
+      
+      # throughput: "125"         # MiB/s for gp3 (optional)

@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv                    # Unique name for this PV
+  labels:
+    type: nfs                     # Label for PVC selector matching
+spec:
+  capacity:
+    storage: 10Gi                 # Total storage available
+  
+  # Access modes:
+  # - ReadWriteOnce (RWO): Single node read/write
+  # - ReadOnlyMany (ROX): Multiple nodes read-only
+  # - ReadWriteMany (RWX): Multiple nodes read/write
+  accessModes:
+    - ReadWriteMany
+  
+  # What happens when PVC is deleted:
+  # - Retain: Keep PV and data (manual cleanup)
+  # - Delete: Delete PV and underlying storage
+  # - Recycle: Scrub data and make PV available again (deprecated)
+  persistentVolumeReclaimPolicy: Retain
+  
+  # StorageClass this PV belongs to
+  # Empty string "" means no dynamic provisioning
+  storageClassName: nfs-storage
+  
+  # NFS-specific configuration
+  nfs:
+    server: 192.168.1.100         # NFS server IP address
+    path: /exports/data           # Exported directory on NFS server

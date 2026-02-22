@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-ssd-pv
+spec:
+  capacity:
+    storage: 100Gi
+  
+  # Local volumes only support RWO
+  accessModes:
+    - ReadWriteOnce
+  
+  # Retain for important production data
+  persistentVolumeReclaimPolicy: Retain
+  
+  storageClassName: local-ssd
+  
+  # Bind to specific local disk
+  local:
+    path: /mnt/disks/ssd1         # Mounted SSD path on node
+  
+  # CRITICAL: Local volumes require node affinity
+  # Schedules pods only to this specific node
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - worker-node-1  # Must match actual node name

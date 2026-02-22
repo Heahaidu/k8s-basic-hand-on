@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ceph-rbd-pv
+spec:
+  capacity:
+    storage: 20Gi
+  
+  accessModes:
+    - ReadWriteOnce               # RBD supports RWO by default
+  
+  persistentVolumeReclaimPolicy: Delete
+  
+  # Ceph Rados Block Device configuration
+  rbd:
+    # Ceph MON (monitor) nodes - all must be listed
+    monitors:
+      - 10.0.0.1:6789             # Default Ceph port is 6789
+      - 10.0.0.2:6789
+      - 10.0.0.3:6789
+    
+    pool: kubernetes              # Ceph pool name for RBD images
+    
+    image: ceph-pv-image          # RBD image name (created beforehand)
+    
+    user: admin                   # Ceph user with RBD access
+    
+    # Secret containing Ceph authentication key
+    secretRef:
+      name: ceph-secret           # kubectl create secret generic ceph-secret --from-literal=key='AQxx...'
+      # namespace: default        # Secret namespace if different
+    
+    fsType: ext4                  # Filesystem type
+    
+    readOnly: false               # Read-write mount
+    
+    # Optional: enable discard for SSD optimization
+    # discard: "unmap"
