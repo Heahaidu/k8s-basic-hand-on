@@ -25,7 +25,8 @@ labels:
       app: my-app
       env: dev
       # team: ???
-
+  # - pairs:
+  #     team:
 ```
 
 Kustomize transforms your Deployment into:
