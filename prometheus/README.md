@@ -30,6 +30,8 @@ helm install prometheus prometheus-community/kube-prometheus-stack --namespace <
 helm install prometheus prometheus-community/kube-prometheus-stack --version "9.4.1" -- namespace <namespace>
 ```
 
+---
+
 ## Install Proometheus
 
 ```
