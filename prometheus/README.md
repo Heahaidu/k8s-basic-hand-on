@@ -1,3 +1,12 @@
+# Alert
+Use `--container-runtime=containerd` or `--container-runtime=cri-o` when start (initial) minikube
+
+# Install CRDs 
+kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+
+# Install CRDs prometheus-operator (recommended)
+kubectl apply --server-side -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.82.0/stripped-down-crds.yaml
+
 ## Install Prometheus-Operator and Grafana
 
 ```

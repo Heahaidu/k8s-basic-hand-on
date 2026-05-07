@@ -1,0 +1,19 @@
+grafana:
+  persistence:
+    enabled: true
+    storageClassName: standard
+    
+    size: 1Gi
+
+  securityContext:
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+
+  grafana.ini:
+    plugins:
+      enable_alpha: false
+    feature_toggles:
+      enable: ""
+    plugin.background.installer:
+      enabled: false 
