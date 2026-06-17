@@ -19,7 +19,7 @@
   - [Ingress](#ingress)
   - [Namespace](#namespace)
   - [ResourceQuota / LimitRange](#resourcequota--limitrange)
-- [Namespace](#namespace)
+- [Namespace](#namespace-management)
 - [Tài nguyên khác (bonus)](#tài-nguyên-khác-bonus)
 
 ---
@@ -596,7 +596,7 @@ spec:
         memory: 64Mi
 ```
 
-# Namespace
+# Namespace Management
 
 ## Tools install
 
