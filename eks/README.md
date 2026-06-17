@@ -6,6 +6,10 @@ A practical reference covering node isolation, multi-AZ pod scheduling, ALB setu
 
 1. [Taints and Tolerations — Dedicated Node Groups](#1-taints-and-tolerations--dedicated-node-groups)
 2. [Taint Effects Explained](#2-taint-effects-explained)
+  - [NoSchedule](#noschedule)
+  - [PreferNoSchedule](#prefernoschedule)
+  - [NoExecute](#noexecute)
+  - [NoExecute with tolerationSeconds](#noexecute-with-tolerationseconds)
 3. [TopologySpreadConstraints — Multi-AZ for Pods](#3-topologyspreadconstraints--multi-az-for-pods)
 4. [Setting Up ALB for EKS](#4-setting-up-alb-for-eks)
 5. [Subpath Routing for Services (with Full Annotations)](#5-subpath-routing-for-services-with-full-annotations)
